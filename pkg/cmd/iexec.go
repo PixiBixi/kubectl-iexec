@@ -25,7 +25,7 @@ Arg[2...] are the commands to be executed in the container
 `
 	iexecExample = `
 	# select from all pods in the namespace then run: 'kubectl exec sh'
-	%[1]s iexec 
+	%[1]s iexec
 
 	# select from all pods matching [busybox] then run: 'kubectl exec [pod_name] /bin/sh'
 	%[1]s iexec busybox
