@@ -3,9 +3,9 @@ package iexec
 import (
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"sort"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,12 +23,12 @@ func NewRealK8sClient(client kubernetes.Interface) *RealK8sClient {
 // FetchAllPods lists the pods. runningOnly filters on the phase server-side, so
 // completed Job pods are not sent over the wire; deletionTimestamp is not
 // field-selectable and stays a client-side check in MatchPods.
-func (r *RealK8sClient) FetchAllPods(namespace, labelSelector string, runningOnly bool) (*corev1.PodList, error) {
+func (r *RealK8sClient) FetchAllPods(ctx context.Context, namespace, labelSelector string, runningOnly bool) (*corev1.PodList, error) {
 	opts := metav1.ListOptions{LabelSelector: labelSelector}
 	if runningOnly {
 		opts.FieldSelector = "status.phase=" + string(corev1.PodRunning)
 	}
-	return r.client.CoreV1().Pods(namespace).List(context.TODO(), opts)
+	return r.client.CoreV1().Pods(namespace).List(ctx, opts)
 }
 
 func (r *RealK8sClient) MatchPods(pods *corev1.PodList, config Config) (*corev1.PodList, error) {
@@ -91,10 +91,6 @@ func (r *RealK8sClient) MatchContainers(pod corev1.Pod, config Config) ([]corev1
 
 		return nil, err
 	}
-
-	sort.Slice(matchingContainer, func(i, j int) bool {
-		return matchingContainer[i].Name < matchingContainer[j].Name
-	})
 
 	return matchingContainer, nil
 }

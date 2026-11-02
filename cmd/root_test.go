@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -19,6 +20,7 @@ func TestExitCode(t *testing.T) {
 	}{
 		{"success", nil, 0, ""},
 		{"remote exit code through wraps", remote, 3, ""},
+		{"interrupted", errors.Wrap(context.Canceled, "exec stream failed"), 130, ""},
 		{"local error", errors.New("no pods found for filter: zzz"), 1, "Error: no pods found for filter: zzz\n"},
 	}
 	for _, tt := range tests {

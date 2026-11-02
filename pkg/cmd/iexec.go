@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/pkg/errors"
@@ -101,7 +103,7 @@ func NewCmdIExec(streams genericclioptions.IOStreams) *cobra.Command {
 			if err := o.Complete(c, args); err != nil {
 				return err
 			}
-			if err := o.Run(args); err != nil {
+			if err := o.Run(c.Context(), args); err != nil {
 				return err
 			}
 
@@ -163,7 +165,7 @@ func (o *IExecOptions) Complete(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (o *IExecOptions) Run(args []string) error {
+func (o *IExecOptions) Run(ctx context.Context, args []string) error {
 	podFilter := ""
 
 	if len(args) > 0 {
@@ -190,13 +192,13 @@ func (o *IExecOptions) Run(args []string) error {
 	}
 
 	// 2) Create your real implementations for the interfaces.
-	ui := iexec.NewHuhTerminal()              // TerminalUI
-	k8s := iexec.NewRealK8sClient(clientset)  // K8sClient
-	execRunner := iexec.NewStreamExecRunner() // ExecRunner
+	ui := iexec.NewHuhTerminal()                       // TerminalUI
+	k8s := iexec.NewRealK8sClient(clientset)           // K8sClient
+	execRunner := iexec.NewStreamExecRunner(clientset) // ExecRunner
 
 	// 3) Pass them to NewIexec along with your config.
 	r := iexec.NewIexec(o.clientCfg, config, ui, k8s, execRunner)
 
 	// 4) Run!
-	return r.Do()
+	return r.Do(ctx)
 }

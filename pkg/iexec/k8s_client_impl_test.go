@@ -1,6 +1,7 @@
 package iexec
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -78,7 +79,7 @@ func TestFetchAllPods_FieldSelector(t *testing.T) {
 		{false, ""},
 	} {
 		cs := fake.NewClientset()
-		if _, err := NewRealK8sClient(cs).FetchAllPods("ns", "app=api", tt.runningOnly); err != nil {
+		if _, err := NewRealK8sClient(cs).FetchAllPods(context.Background(), "ns", "app=api", tt.runningOnly); err != nil {
 			t.Fatalf("FetchAllPods: %v", err)
 		}
 		action, ok := cs.Actions()[0].(k8stesting.ListAction)
