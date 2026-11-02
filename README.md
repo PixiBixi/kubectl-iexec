@@ -14,7 +14,7 @@ This is a maintained fork of [gabeduke/kubectl-iexec](https://github.com/gabeduk
 - WebSocket exec with SPDY fallback (like modern `kubectl`), raw terminal mode and live resize
 - Clean output when stdin or stdout is piped (`kubectl iexec api printenv | sort > .env`)
 - `--first` to skip the prompts
-- Search in the pod and container pickers: press `/` and type part of `namespace/name`
+- Pickers built on [huh](https://github.com/charmbracelet/huh): press `/` to filter on `namespace/name`
 - Pods that are not `Running` or are terminating are skipped (`--all-phases` to keep them)
 - Default shell is `bash` with a fallback to `sh` for alpine and busybox images
 - Releases signed with cosign, with SBOMs and provenance, published to a Krew index
@@ -69,7 +69,7 @@ kubectl iexec busybox --first cat /etc/hosts
 | `--all-phases` | Include pods that are not `Running` or are terminating (skipped by default) |
 | `-A, --all-namespaces` | Search pods across all namespaces |
 | `-n, --namespace` | Namespace to search |
-| `-v, --vim-mode` | Vim keys in the prompts |
+| `-v, --vim-mode` | Deprecated, no effect: `j`/`k` always navigate |
 | `-x, --naked` | Decolorize output |
 | `--log-level` | `trace`, `debug`, `info`, `warn`, `error`, `fatal` or `panic` |
 
