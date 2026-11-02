@@ -3,9 +3,9 @@ package iexec
 import (
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"sort"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,10 +20,15 @@ func NewRealK8sClient(client kubernetes.Interface) *RealK8sClient {
 	return &RealK8sClient{client: client}
 }
 
-func (r *RealK8sClient) FetchAllPods(namespace, labelSelector string) (*corev1.PodList, error) {
-	return r.client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
-		LabelSelector: labelSelector,
-	})
+// FetchAllPods lists the pods. runningOnly filters on the phase server-side, so
+// completed Job pods are not sent over the wire; deletionTimestamp is not
+// field-selectable and stays a client-side check in MatchPods.
+func (r *RealK8sClient) FetchAllPods(ctx context.Context, namespace, labelSelector string, runningOnly bool) (*corev1.PodList, error) {
+	opts := metav1.ListOptions{LabelSelector: labelSelector}
+	if runningOnly {
+		opts.FieldSelector = "status.phase=" + string(corev1.PodRunning)
+	}
+	return r.client.CoreV1().Pods(namespace).List(ctx, opts)
 }
 
 func (r *RealK8sClient) MatchPods(pods *corev1.PodList, config Config) (*corev1.PodList, error) {
@@ -33,13 +38,11 @@ func (r *RealK8sClient) MatchPods(pods *corev1.PodList, config Config) (*corev1.
 		"SearchFilter": config.PodFilter,
 	}).Infof("Get all pods for podFilter...")
 
-	skipped := 0
 	for i, pod := range pods.Items {
 		if !strings.Contains(pod.GetName(), config.PodFilter) {
 			continue
 		}
 		if !config.AllPhases && !isExecable(pod) {
-			skipped++
 			continue
 		}
 		result.Items = append(result.Items, pod)
@@ -50,8 +53,8 @@ func (r *RealK8sClient) MatchPods(pods *corev1.PodList, config Config) (*corev1.
 	}
 
 	if len(result.Items) == 0 {
-		if skipped > 0 {
-			return &result, fmt.Errorf("no running pods found for filter: %s (%d not running, use --all-phases to include them)", config.PodFilter, skipped)
+		if !config.AllPhases {
+			return &result, fmt.Errorf("no running pods found for filter: %s (use --all-phases to include pods that are not running)", config.PodFilter)
 		}
 		return &result, fmt.Errorf("no pods found for filter: %s", config.PodFilter)
 	}
@@ -88,10 +91,6 @@ func (r *RealK8sClient) MatchContainers(pod corev1.Pod, config Config) ([]corev1
 
 		return nil, err
 	}
-
-	sort.Slice(matchingContainer, func(i, j int) bool {
-		return matchingContainer[i].Name < matchingContainer[j].Name
-	})
 
 	return matchingContainer, nil
 }

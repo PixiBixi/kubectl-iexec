@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/pkg/errors"
@@ -11,7 +13,6 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (
@@ -21,7 +22,8 @@ IExec is an interactive pod and container selector for 'kubectl exec'
 Arg[1] will act as a filter, any pods that match will be returned in a list
 that the user can select from.
 
-Arg[2...] are the commands to be executed in the container
+Arg[2...] are the commands to be executed in the container. Put -- before
+a command that has its own flags, otherwise iexec parses them.
 `
 	iexecExample = `
 	# select from all pods in the namespace then run: 'kubectl exec sh'
@@ -40,6 +42,9 @@ Arg[2...] are the commands to be executed in the container
 
 	# skip the prompts and run in the first matching pod and container
 	%[1]s iexec busybox --first cat /etc/hosts
+
+	# put -- before a command that has its own flags
+	%[1]s iexec busybox -- sh -c 'echo $HOSTNAME'
 `
 )
 
@@ -60,7 +65,6 @@ type IExecOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	clientCfg   *rest.Config
 
-	configOverrides clientcmd.ConfigOverrides
 	allNamespaces   bool
 	remoteCmd       []string
 	containerFilter string
@@ -89,16 +93,17 @@ func NewCmdIExec(streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewIExecOptions(streams)
 
 	cmd := &cobra.Command{
-		Use:          "iexec [pod filter] [remote command(s)] [flags]",
-		Short:        "Interactive remote shell into a Kubernetes Pod",
-		Example:      fmt.Sprintf(iexecExample, "kubectl"),
-		Long:         iexecLong,
-		SilenceUsage: false,
+		Use:           "iexec [pod filter] [remote command(s)] [flags]",
+		Short:         "Interactive remote shell into a Kubernetes Pod",
+		Example:       fmt.Sprintf(iexecExample, "kubectl"),
+		Long:          iexecLong,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := o.Complete(c, args); err != nil {
 				return err
 			}
-			if err := o.Run(args); err != nil {
+			if err := o.Run(c.Context(), args); err != nil {
 				return err
 			}
 
@@ -128,17 +133,10 @@ func (o *IExecOptions) Complete(cmd *cobra.Command, args []string) error {
 		return errors.Wrap(err, "unable to get rest client")
 	}
 
-	c := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(),
-		&o.configOverrides)
-
-	o.namespace, _, err = c.Namespace()
+	// The loader honors --namespace, then the namespace of --context, then the current context.
+	o.namespace, _, err = o.configFlags.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return errors.Wrap(err, "unable to get namespace")
-	}
-
-	if *o.configFlags.Namespace != "" {
-		o.namespace = *o.configFlags.Namespace
 	}
 
 	if o.allNamespaces {
@@ -167,7 +165,7 @@ func (o *IExecOptions) Complete(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (o *IExecOptions) Run(args []string) error {
+func (o *IExecOptions) Run(ctx context.Context, args []string) error {
 	podFilter := ""
 
 	if len(args) > 0 {
@@ -190,21 +188,17 @@ func (o *IExecOptions) Run(args []string) error {
 	// 1) Create a real Kubernetes clientset from o.clientCfg.
 	clientset, err := kubernetes.NewForConfig(o.clientCfg)
 	if err != nil {
-		log.Fatalf("Failed to create kubernetes client: %v", err)
+		return errors.Wrap(err, "unable to create kubernetes client")
 	}
 
 	// 2) Create your real implementations for the interfaces.
-	ui := iexec.NewHuhTerminal()              // TerminalUI
-	k8s := iexec.NewRealK8sClient(clientset)  // K8sClient
-	execRunner := iexec.NewStreamExecRunner() // ExecRunner
+	ui := iexec.NewHuhTerminal()                       // TerminalUI
+	k8s := iexec.NewRealK8sClient(clientset)           // K8sClient
+	execRunner := iexec.NewStreamExecRunner(clientset) // ExecRunner
 
 	// 3) Pass them to NewIexec along with your config.
 	r := iexec.NewIexec(o.clientCfg, config, ui, k8s, execRunner)
 
 	// 4) Run!
-	if err := r.Do(); err != nil {
-		log.Fatal(err)
-	}
-
-	return nil
+	return r.Do(ctx)
 }

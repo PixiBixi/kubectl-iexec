@@ -1,6 +1,8 @@
 package iexec
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
@@ -8,7 +10,7 @@ import (
 
 // Iexecer remains for backward compatibility if needed
 type Iexecer interface {
-	Do() error
+	Do(ctx context.Context) error
 }
 
 type Config struct {
@@ -55,9 +57,9 @@ func NewIexec(restConfig *rest.Config, config *Config, ui TerminalUI, k8s K8sCli
 }
 
 // Do is our main plugin flow, now purely orchestrating the calls
-func (r *Iexec) Do() error {
+func (r *Iexec) Do(ctx context.Context) error {
 	// 1. Fetch pods
-	podsList, err := r.k8sClient.FetchAllPods(r.config.Namespace, r.config.LabelSelector)
+	podsList, err := r.k8sClient.FetchAllPods(ctx, r.config.Namespace, r.config.LabelSelector, !r.config.AllPhases)
 	if err != nil {
 		return errors.Wrap(err, "fetchAllPods failed")
 	}
@@ -106,7 +108,7 @@ func (r *Iexec) Do() error {
 	}).Info("Exec to pod...")
 
 	// 6. Execute remote command
-	if err := r.exec.RunExec(r.restConfig, pod, container, r.config.RemoteCmd); err != nil {
+	if err := r.exec.RunExec(ctx, r.restConfig, pod, container, r.config.RemoteCmd); err != nil {
 		return errors.Wrap(err, "RunExec failed")
 	}
 

@@ -18,10 +18,12 @@ import (
 
 // StreamExecRunner runs the exec over WebSocket and falls back to SPDY when
 // the API server or an intermediate proxy refuses the upgrade, like kubectl.
-type StreamExecRunner struct{}
+type StreamExecRunner struct {
+	client kubernetes.Interface
+}
 
-func NewStreamExecRunner() *StreamExecRunner {
-	return &StreamExecRunner{}
+func NewStreamExecRunner(client kubernetes.Interface) *StreamExecRunner {
+	return &StreamExecRunner{client: client}
 }
 
 // sizeQueue is a channel of TerminalSize, fed by the resize watcher.
@@ -48,18 +50,13 @@ func newExecutor(restCfg *rest.Config, u *url.URL) (remotecommand.Executor, erro
 	return remotecommand.NewFallbackExecutor(wsExec, spdyExec, httpstream.IsUpgradeFailure)
 }
 
-func (r *StreamExecRunner) RunExec(restCfg *rest.Config, pod corev1.Pod, container corev1.Container, cmd []string) error {
-	client, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		return errors.Wrap(err, "unable to create kubernetes client")
-	}
-
+func (r *StreamExecRunner) RunExec(ctx context.Context, restCfg *rest.Config, pod corev1.Pod, container corev1.Container, cmd []string) error {
 	// Upstream #78: a remote TTY only when stdin AND stdout are terminals.
 	// A TTY on `iexec pod cmd | sort` writes CRLF and escapes into the pipe.
 	fd := int(os.Stdin.Fd())
 	tty := term.IsTerminal(fd) && term.IsTerminal(int(os.Stdout.Fd()))
 
-	req := client.CoreV1().RESTClient().
+	req := r.client.CoreV1().RESTClient().
 		Post().
 		Namespace(pod.Namespace).
 		Resource("pods").
@@ -90,7 +87,7 @@ func (r *StreamExecRunner) RunExec(restCfg *rest.Config, pod corev1.Pod, contain
 		opts.Stderr = os.Stderr
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	if tty {

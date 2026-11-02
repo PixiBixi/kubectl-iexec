@@ -1,11 +1,14 @@
 package iexec
 
 import (
+	"context"
 	"strings"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
 
 func pod(name string, phase corev1.PodPhase, terminating bool) corev1.Pod {
@@ -62,7 +65,33 @@ func TestMatchPods_OnlyNotRunning(t *testing.T) {
 	}}
 
 	_, err := NewRealK8sClient(nil).MatchPods(list, Config{PodFilter: "job"})
-	if err == nil || !strings.Contains(err.Error(), "2 not running") || !strings.Contains(err.Error(), "--all-phases") {
-		t.Errorf("got error %v, want a hint about 2 skipped pods and --all-phases", err)
+	if err == nil || !strings.Contains(err.Error(), "--all-phases") {
+		t.Errorf("got error %v, want a hint about --all-phases", err)
+	}
+}
+
+func TestFetchAllPods_FieldSelector(t *testing.T) {
+	for _, tt := range []struct {
+		runningOnly bool
+		want        string
+	}{
+		{true, "status.phase=Running"},
+		{false, ""},
+	} {
+		cs := fake.NewClientset()
+		if _, err := NewRealK8sClient(cs).FetchAllPods(context.Background(), "ns", "app=api", tt.runningOnly); err != nil {
+			t.Fatalf("FetchAllPods: %v", err)
+		}
+		action, ok := cs.Actions()[0].(k8stesting.ListAction)
+		if !ok {
+			t.Fatalf("got action %T, want a ListAction", cs.Actions()[0])
+		}
+		list := action.GetListRestrictions()
+		if got := list.Fields.String(); got != tt.want {
+			t.Errorf("runningOnly=%v: field selector %q, want %q", tt.runningOnly, got, tt.want)
+		}
+		if got := list.Labels.String(); got != "app=api" {
+			t.Errorf("label selector %q, want %q", got, "app=api")
+		}
 	}
 }

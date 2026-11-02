@@ -1,6 +1,7 @@
 package iexec
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -23,13 +24,13 @@ func (m *MockUI) SelectContainer(containers []corev1.Container, cfg Config) (cor
 
 // Mock K8s
 type MockK8sClient struct {
-	FetchAllPodsFn    func(namespace, labelSelector string) (*corev1.PodList, error)
+	FetchAllPodsFn    func(namespace, labelSelector string, runningOnly bool) (*corev1.PodList, error)
 	MatchPodsFn       func(pods *corev1.PodList, config Config) (*corev1.PodList, error)
 	MatchContainersFn func(pod corev1.Pod, config Config) ([]corev1.Container, error)
 }
 
-func (m *MockK8sClient) FetchAllPods(ns, lbl string) (*corev1.PodList, error) {
-	return m.FetchAllPodsFn(ns, lbl)
+func (m *MockK8sClient) FetchAllPods(_ context.Context, ns, lbl string, runningOnly bool) (*corev1.PodList, error) {
+	return m.FetchAllPodsFn(ns, lbl, runningOnly)
 }
 func (m *MockK8sClient) MatchPods(pods *corev1.PodList, cfg Config) (*corev1.PodList, error) {
 	return m.MatchPodsFn(pods, cfg)
@@ -43,7 +44,7 @@ type MockExecRunner struct {
 	RunExecFn func(*rest.Config, corev1.Pod, corev1.Container, []string) error
 }
 
-func (m *MockExecRunner) RunExec(r *rest.Config, p corev1.Pod, c corev1.Container, cmd []string) error {
+func (m *MockExecRunner) RunExec(_ context.Context, r *rest.Config, p corev1.Pod, c corev1.Container, cmd []string) error {
 	return m.RunExecFn(r, p, c, cmd)
 }
 
@@ -58,7 +59,7 @@ func TestIexec_Do_Success(t *testing.T) {
 		},
 	}
 	k8sMock := &MockK8sClient{
-		FetchAllPodsFn: func(ns, lbl string) (*corev1.PodList, error) {
+		FetchAllPodsFn: func(ns, lbl string, _ bool) (*corev1.PodList, error) {
 			return &corev1.PodList{
 				Items: []corev1.Pod{{
 					Spec: corev1.PodSpec{
@@ -83,7 +84,7 @@ func TestIexec_Do_Success(t *testing.T) {
 	cfg := &Config{Namespace: "default"}
 	iex := NewIexec(&rest.Config{}, cfg, ui, k8sMock, execMock)
 
-	if err := iex.Do(); err != nil {
+	if err := iex.Do(context.Background()); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 }
@@ -92,7 +93,7 @@ func TestIexec_Do_Success(t *testing.T) {
 func TestIexec_Do_FetchPodsError(t *testing.T) {
 	ui := &MockUI{}
 	k8sMock := &MockK8sClient{
-		FetchAllPodsFn: func(ns, lbl string) (*corev1.PodList, error) {
+		FetchAllPodsFn: func(ns, lbl string, _ bool) (*corev1.PodList, error) {
 			return nil, errors.New("error fetching pods")
 		},
 		MatchPodsFn:       nil,
@@ -103,7 +104,7 @@ func TestIexec_Do_FetchPodsError(t *testing.T) {
 	cfg := &Config{Namespace: "default"}
 	iex := NewIexec(&rest.Config{}, cfg, ui, k8sMock, execMock)
 
-	err := iex.Do()
+	err := iex.Do(context.Background())
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -124,7 +125,7 @@ func TestIexec_Do_First_SkipsPrompts(t *testing.T) {
 		},
 	}
 	k8sMock := &MockK8sClient{
-		FetchAllPodsFn: func(ns, lbl string) (*corev1.PodList, error) {
+		FetchAllPodsFn: func(ns, lbl string, _ bool) (*corev1.PodList, error) {
 			return &corev1.PodList{Items: []corev1.Pod{
 				{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "c1"}, {Name: "c2"}}}},
 				{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "other"}}}},
@@ -146,7 +147,7 @@ func TestIexec_Do_First_SkipsPrompts(t *testing.T) {
 	}
 
 	iex := NewIexec(&rest.Config{}, &Config{Namespace: "default", First: true}, ui, k8sMock, execMock)
-	if err := iex.Do(); err != nil {
+	if err := iex.Do(context.Background()); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if got != "c1" {
