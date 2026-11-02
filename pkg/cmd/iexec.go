@@ -37,6 +37,9 @@ Arg[2...] are the commands to be executed in the container
 	# then select from all containers in pod matching [second_container]
 	# then run: 'kubectl exec [pod_name] [container_name] /bin/sh'
 	%[1]s iexec multi_container_pod -c second_container
+
+	# skip the prompts and run in the first matching pod and container
+	%[1]s iexec busybox --first cat /etc/hosts
 `
 )
 
@@ -54,6 +57,7 @@ type IExecOptions struct {
 	labelSelector   string
 	naked           bool
 	vimMode         bool
+	first           bool
 
 	genericclioptions.IOStreams
 }
@@ -95,6 +99,7 @@ func NewCmdIExec(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&o.labelSelector, "selector", "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
 	cmd.PersistentFlags().BoolVarP(&o.vimMode, "vim-mode", "v", false, "Vim Mode enabled")
 	cmd.PersistentFlags().BoolVarP(&o.naked, "naked", "x", false, "Decolorize output")
+	cmd.PersistentFlags().BoolVarP(&o.first, "first", "", false, "Skip the prompts and use the first matching pod and container")
 	o.configFlags.AddFlags(cmd.Flags())
 
 	return cmd
@@ -166,6 +171,7 @@ func (o *IExecOptions) Run(args []string) error {
 		LabelSelector:   o.labelSelector,
 		Naked:           o.naked,
 		VimMode:         o.vimMode,
+		First:           o.first,
 		PodFilter:       podFilter,
 		ContainerFilter: o.containerFilter,
 		RemoteCmd:       o.remoteCmd,

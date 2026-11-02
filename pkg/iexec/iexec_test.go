@@ -111,3 +111,45 @@ func TestIexec_Do_FetchPodsError(t *testing.T) {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
+
+func TestIexec_Do_First_SkipsPrompts(t *testing.T) {
+	ui := &MockUI{
+		SelectPodFn: func([]corev1.Pod, Config) (corev1.Pod, error) {
+			t.Fatal("SelectPod must not be called with First")
+			return corev1.Pod{}, nil
+		},
+		SelectContainerFn: func([]corev1.Container, Config) (corev1.Container, error) {
+			t.Fatal("SelectContainer must not be called with First")
+			return corev1.Container{}, nil
+		},
+	}
+	k8sMock := &MockK8sClient{
+		FetchAllPodsFn: func(ns, lbl string) (*corev1.PodList, error) {
+			return &corev1.PodList{Items: []corev1.Pod{
+				{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "c1"}, {Name: "c2"}}}},
+				{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "other"}}}},
+			}}, nil
+		},
+		MatchPodsFn: func(pods *corev1.PodList, cfg Config) (*corev1.PodList, error) {
+			return pods, nil
+		},
+		MatchContainersFn: func(pod corev1.Pod, cfg Config) ([]corev1.Container, error) {
+			return pod.Spec.Containers, nil
+		},
+	}
+	var got string
+	execMock := &MockExecRunner{
+		RunExecFn: func(_ *rest.Config, _ corev1.Pod, c corev1.Container, _ []string) error {
+			got = c.Name
+			return nil
+		},
+	}
+
+	iex := NewIexec(&rest.Config{}, &Config{Namespace: "default", First: true}, ui, k8sMock, execMock)
+	if err := iex.Do(); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if got != "c1" {
+		t.Errorf("expected first container c1, got %q", got)
+	}
+}

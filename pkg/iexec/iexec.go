@@ -16,6 +16,7 @@ type Config struct {
 	LabelSelector   string
 	Naked           bool
 	VimMode         bool
+	First           bool
 	PodFilter       string
 	ContainerFilter string
 	RemoteCmd       []string
@@ -39,6 +40,7 @@ func NewIexec(restConfig *rest.Config, config *Config, ui TerminalUI, k8s K8sCli
 		"podFilter":       config.PodFilter,
 		"Vim Mode":        config.VimMode,
 		"Naked":           config.Naked,
+		"First":           config.First,
 		"Namespace":       config.Namespace,
 		"LabelSelector":   config.LabelSelector,
 	}).Debug("iexec config values...")
@@ -70,10 +72,13 @@ func (r *Iexec) Do() error {
 		return errors.New("no matching pods found")
 	}
 
-	// 3. Prompt user to select a pod
-	pod, err := r.ui.SelectPod(pods, *r.config)
-	if err != nil {
-		return errors.Wrap(err, "SelectPod failed")
+	// 3. Prompt user to select a pod (the first match with --first)
+	pod := pods[0]
+	if !r.config.First {
+		pod, err = r.ui.SelectPod(pods, *r.config)
+		if err != nil {
+			return errors.Wrap(err, "SelectPod failed")
+		}
 	}
 
 	// 4. Match containers
@@ -85,10 +90,13 @@ func (r *Iexec) Do() error {
 		return errors.New("no matching containers found")
 	}
 
-	// 5. Prompt user to select a container
-	container, err := r.ui.SelectContainer(containers, *r.config)
-	if err != nil {
-		return errors.Wrap(err, "SelectContainer failed")
+	// 5. Prompt user to select a container (the first match with --first)
+	container := containers[0]
+	if !r.config.First {
+		container, err = r.ui.SelectContainer(containers, *r.config)
+		if err != nil {
+			return errors.Wrap(err, "SelectContainer failed")
+		}
 	}
 
 	log.WithFields(log.Fields{
