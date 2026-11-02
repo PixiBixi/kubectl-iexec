@@ -54,10 +54,10 @@ func (r *StreamExecRunner) RunExec(restCfg *rest.Config, pod corev1.Pod, contain
 		return errors.Wrap(err, "unable to create kubernetes client")
 	}
 
-	// A remote TTY is only requested when stdin is a terminal, so piping
-	// into or out of the plugin keeps the byte stream clean.
+	// Upstream #78: a remote TTY only when stdin AND stdout are terminals.
+	// A TTY on `iexec pod cmd | sort` writes CRLF and escapes into the pipe.
 	fd := int(os.Stdin.Fd())
-	tty := term.IsTerminal(fd)
+	tty := term.IsTerminal(fd) && term.IsTerminal(int(os.Stdout.Fd()))
 
 	req := client.CoreV1().RESTClient().
 		Post().
