@@ -87,11 +87,12 @@ func NewCmdIExec(streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewIExecOptions(streams)
 
 	cmd := &cobra.Command{
-		Use:          "iexec [pod filter] [remote command(s)] [flags]",
-		Short:        "Interactive remote shell into a Kubernetes Pod",
-		Example:      fmt.Sprintf(iexecExample, "kubectl"),
-		Long:         iexecLong,
-		SilenceUsage: false,
+		Use:           "iexec [pod filter] [remote command(s)] [flags]",
+		Short:         "Interactive remote shell into a Kubernetes Pod",
+		Example:       fmt.Sprintf(iexecExample, "kubectl"),
+		Long:          iexecLong,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := o.Complete(c, args); err != nil {
 				return err
@@ -181,7 +182,7 @@ func (o *IExecOptions) Run(args []string) error {
 	// 1) Create a real Kubernetes clientset from o.clientCfg.
 	clientset, err := kubernetes.NewForConfig(o.clientCfg)
 	if err != nil {
-		log.Fatalf("Failed to create kubernetes client: %v", err)
+		return errors.Wrap(err, "unable to create kubernetes client")
 	}
 
 	// 2) Create your real implementations for the interfaces.
@@ -193,9 +194,5 @@ func (o *IExecOptions) Run(args []string) error {
 	r := iexec.NewIexec(o.clientCfg, config, ui, k8s, execRunner)
 
 	// 4) Run!
-	if err := r.Do(); err != nil {
-		log.Fatal(err)
-	}
-
-	return nil
+	return r.Do()
 }
