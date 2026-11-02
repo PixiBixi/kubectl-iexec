@@ -37,6 +37,14 @@ go install github.com/PixiBixi/kubectl-iexec/v2@latest
 
 The binary must be named `kubectl-iexec` and be on your `PATH`. Prebuilt archives for Linux and macOS (amd64, arm64) are on the [releases page](https://github.com/PixiBixi/kubectl-iexec/releases).
 
+### Shell completion
+
+With kubectl 1.26 or later and kubectl completion enabled in your shell, `kubectl iexec <TAB>` completes pod names, workloads (`deploy/<TAB>`), `-n`, `--context` and `-c`. kubectl looks for a `kubectl_complete-iexec` executable on your `PATH`; a symlink to the plugin is enough:
+
+```bash
+ln -s "$(command -v kubectl-iexec)" "$(dirname "$(command -v kubectl-iexec)")/kubectl_complete-iexec"
+```
+
 ## Usage
 
 ```text
