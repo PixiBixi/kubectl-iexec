@@ -39,10 +39,10 @@ The binary must be named `kubectl-iexec` and be on your `PATH`. Prebuilt archive
 
 ### Shell completion
 
-With kubectl 1.26 or later and kubectl completion enabled in your shell, `kubectl iexec <TAB>` completes pod names, workloads (`deploy/<TAB>`), `-n`, `--context` and `-c`. kubectl looks for a `kubectl_complete-iexec` executable on your `PATH`; a symlink to the plugin is enough:
+With kubectl 1.26 or later and kubectl completion enabled in your shell, `kubectl iexec <TAB>` completes pod names, workloads (`deploy/<TAB>`), `-n`, `--context` and `-c`. kubectl looks for a `kubectl_complete-iexec` executable on your `PATH`; this creates it as a symlink next to the plugin (once, it survives krew upgrades):
 
 ```bash
-ln -s "$(command -v kubectl-iexec)" "$(dirname "$(command -v kubectl-iexec)")/kubectl_complete-iexec"
+kubectl iexec --install-completion
 ```
 
 ## Usage
@@ -91,6 +91,7 @@ kubectl iexec busybox -- sh -c 'echo $HOSTNAME'
 | `-n, --namespace` | Namespace to search |
 | `-v, --vim-mode` | Deprecated, no effect: `j`/`k` always navigate |
 | `-x, --naked` | Decolorize output |
+| `--install-completion` | Link `kubectl_complete-iexec` next to the plugin for shell completion, then exit |
 | `--log-level` | `trace`, `debug`, `info`, `warn`, `error`, `fatal` or `panic` |
 
 The usual kubectl connection flags (`--context`, `--kubeconfig`, `--server`, ...) are also accepted.
