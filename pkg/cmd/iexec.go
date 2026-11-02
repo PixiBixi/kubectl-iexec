@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (
@@ -60,7 +59,6 @@ type IExecOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	clientCfg   *rest.Config
 
-	configOverrides clientcmd.ConfigOverrides
 	allNamespaces   bool
 	remoteCmd       []string
 	containerFilter string
@@ -128,17 +126,10 @@ func (o *IExecOptions) Complete(cmd *cobra.Command, args []string) error {
 		return errors.Wrap(err, "unable to get rest client")
 	}
 
-	c := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		clientcmd.NewDefaultClientConfigLoadingRules(),
-		&o.configOverrides)
-
-	o.namespace, _, err = c.Namespace()
+	// The loader honors --namespace, then the namespace of --context, then the current context.
+	o.namespace, _, err = o.configFlags.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return errors.Wrap(err, "unable to get namespace")
-	}
-
-	if *o.configFlags.Namespace != "" {
-		o.namespace = *o.configFlags.Namespace
 	}
 
 	if o.allNamespaces {
