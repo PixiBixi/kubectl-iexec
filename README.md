@@ -17,6 +17,7 @@ This is a maintained fork of [gabeduke/kubectl-iexec](https://github.com/gabeduk
 - Pickers built on [huh](https://github.com/charmbracelet/huh): press `/` to filter on `namespace/name`
 - Pods that are not `Running` or are terminating are skipped (`--all-phases` to keep them)
 - Default shell is `bash` with a fallback to `sh` for alpine and busybox images
+- `--debug` for images without a shell (distroless): attaches an ephemeral debug container instead of an exec
 - Releases signed with cosign, with SBOMs and provenance, published to a Krew index
 
 ## Install
@@ -60,6 +61,9 @@ kubectl iexec multi-container-pod -c second_container
 # no prompt: first matching pod and container
 kubectl iexec busybox --first cat /etc/hosts
 
+# no shell in the image (distroless): attach an ephemeral busybox sharing its processes
+kubectl iexec api --debug
+
 # a command with its own flags goes after --
 kubectl iexec busybox -- sh -c 'echo $HOSTNAME'
 ```
@@ -69,6 +73,8 @@ kubectl iexec busybox -- sh -c 'echo $HOSTNAME'
 | `-c, --container` | Container name filter |
 | `-l, --selector` | Label selector to filter pods (`key1=value1,key2=value2`) |
 | `--first` | Skip the prompts and use the first matching pod and container |
+| `--debug` | Attach an ephemeral debug container targeting the selected container instead of an exec. Needs `patch` on `pods/ephemeralcontainers` |
+| `--debug-image` | Image of the `--debug` container (default `busybox:1.37`) |
 | `--all-phases` | Include pods that are not `Running` or are terminating (skipped by default) |
 | `-A, --all-namespaces` | Search pods across all namespaces |
 | `-n, --namespace` | Namespace to search |

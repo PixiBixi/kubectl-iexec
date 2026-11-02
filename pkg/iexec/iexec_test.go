@@ -3,6 +3,7 @@ package iexec
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +28,10 @@ type MockK8sClient struct {
 	FetchAllPodsFn    func(namespace, labelSelector string, runningOnly bool) (*corev1.PodList, error)
 	MatchPodsFn       func(pods *corev1.PodList, config Config) (*corev1.PodList, error)
 	MatchContainersFn func(pod corev1.Pod, config Config) ([]corev1.Container, error)
+
+	AddEphemeralContainerFn  func(pod corev1.Pod, c corev1.EphemeralContainer) error
+	WaitEphemeralContainerFn func(pod corev1.Pod, name string, untilExit bool) (corev1.ContainerState, error)
+	StreamLogsFn             func(pod corev1.Pod, container string, w io.Writer) error
 }
 
 func (m *MockK8sClient) FetchAllPods(_ context.Context, ns, lbl string, runningOnly bool) (*corev1.PodList, error) {
@@ -38,14 +43,27 @@ func (m *MockK8sClient) MatchPods(pods *corev1.PodList, cfg Config) (*corev1.Pod
 func (m *MockK8sClient) MatchContainers(pod corev1.Pod, cfg Config) ([]corev1.Container, error) {
 	return m.MatchContainersFn(pod, cfg)
 }
+func (m *MockK8sClient) AddEphemeralContainer(_ context.Context, pod corev1.Pod, c corev1.EphemeralContainer) error {
+	return m.AddEphemeralContainerFn(pod, c)
+}
+func (m *MockK8sClient) WaitEphemeralContainer(_ context.Context, pod corev1.Pod, name string, untilExit bool) (corev1.ContainerState, error) {
+	return m.WaitEphemeralContainerFn(pod, name, untilExit)
+}
+func (m *MockK8sClient) StreamLogs(_ context.Context, pod corev1.Pod, container string, w io.Writer) error {
+	return m.StreamLogsFn(pod, container, w)
+}
 
 // Mock Exec
 type MockExecRunner struct {
-	RunExecFn func(*rest.Config, corev1.Pod, corev1.Container, []string) error
+	RunExecFn   func(*rest.Config, corev1.Pod, corev1.Container, []string) error
+	RunAttachFn func(*rest.Config, corev1.Pod, string) error
 }
 
 func (m *MockExecRunner) RunExec(_ context.Context, r *rest.Config, p corev1.Pod, c corev1.Container, cmd []string) error {
 	return m.RunExecFn(r, p, c, cmd)
+}
+func (m *MockExecRunner) RunAttach(_ context.Context, r *rest.Config, p corev1.Pod, c string) error {
+	return m.RunAttachFn(r, p, c)
 }
 
 // Example Test
