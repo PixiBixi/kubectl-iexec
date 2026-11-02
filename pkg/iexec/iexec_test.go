@@ -23,13 +23,13 @@ func (m *MockUI) SelectContainer(containers []corev1.Container, cfg Config) (cor
 
 // Mock K8s
 type MockK8sClient struct {
-	FetchAllPodsFn    func(namespace, labelSelector string) (*corev1.PodList, error)
+	FetchAllPodsFn    func(namespace, labelSelector string, runningOnly bool) (*corev1.PodList, error)
 	MatchPodsFn       func(pods *corev1.PodList, config Config) (*corev1.PodList, error)
 	MatchContainersFn func(pod corev1.Pod, config Config) ([]corev1.Container, error)
 }
 
-func (m *MockK8sClient) FetchAllPods(ns, lbl string) (*corev1.PodList, error) {
-	return m.FetchAllPodsFn(ns, lbl)
+func (m *MockK8sClient) FetchAllPods(ns, lbl string, runningOnly bool) (*corev1.PodList, error) {
+	return m.FetchAllPodsFn(ns, lbl, runningOnly)
 }
 func (m *MockK8sClient) MatchPods(pods *corev1.PodList, cfg Config) (*corev1.PodList, error) {
 	return m.MatchPodsFn(pods, cfg)
@@ -58,7 +58,7 @@ func TestIexec_Do_Success(t *testing.T) {
 		},
 	}
 	k8sMock := &MockK8sClient{
-		FetchAllPodsFn: func(ns, lbl string) (*corev1.PodList, error) {
+		FetchAllPodsFn: func(ns, lbl string, _ bool) (*corev1.PodList, error) {
 			return &corev1.PodList{
 				Items: []corev1.Pod{{
 					Spec: corev1.PodSpec{
@@ -92,7 +92,7 @@ func TestIexec_Do_Success(t *testing.T) {
 func TestIexec_Do_FetchPodsError(t *testing.T) {
 	ui := &MockUI{}
 	k8sMock := &MockK8sClient{
-		FetchAllPodsFn: func(ns, lbl string) (*corev1.PodList, error) {
+		FetchAllPodsFn: func(ns, lbl string, _ bool) (*corev1.PodList, error) {
 			return nil, errors.New("error fetching pods")
 		},
 		MatchPodsFn:       nil,
@@ -124,7 +124,7 @@ func TestIexec_Do_First_SkipsPrompts(t *testing.T) {
 		},
 	}
 	k8sMock := &MockK8sClient{
-		FetchAllPodsFn: func(ns, lbl string) (*corev1.PodList, error) {
+		FetchAllPodsFn: func(ns, lbl string, _ bool) (*corev1.PodList, error) {
 			return &corev1.PodList{Items: []corev1.Pod{
 				{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "c1"}, {Name: "c2"}}}},
 				{Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "other"}}}},

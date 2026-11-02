@@ -57,7 +57,7 @@ func NewIexec(restConfig *rest.Config, config *Config, ui TerminalUI, k8s K8sCli
 // Do is our main plugin flow, now purely orchestrating the calls
 func (r *Iexec) Do() error {
 	// 1. Fetch pods
-	podsList, err := r.k8sClient.FetchAllPods(r.config.Namespace, r.config.LabelSelector)
+	podsList, err := r.k8sClient.FetchAllPods(r.config.Namespace, r.config.LabelSelector, !r.config.AllPhases)
 	if err != nil {
 		return errors.Wrap(err, "fetchAllPods failed")
 	}

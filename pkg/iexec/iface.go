@@ -12,7 +12,7 @@ type TerminalUI interface {
 }
 
 type K8sClient interface {
-	FetchAllPods(namespace, labelSelector string) (*corev1.PodList, error)
+	FetchAllPods(namespace, labelSelector string, runningOnly bool) (*corev1.PodList, error)
 	MatchPods(pods *corev1.PodList, config Config) (*corev1.PodList, error)
 	MatchContainers(pod corev1.Pod, config Config) ([]corev1.Container, error)
 }
