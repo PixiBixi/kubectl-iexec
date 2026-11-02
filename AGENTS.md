@@ -8,7 +8,7 @@ Guidance for coding agents working in this repository.
 the user pick a pod and a container (promptui), then execs into it. Fork of
 gabeduke/kubectl-iexec. Go 1.27, cobra, client-go (typed client and
 `remotecommand`), promptui, `golang.org/x/term`. The module path is
-`github.com/PixiBixi/kubectl-iexec`.
+`github.com/PixiBixi/kubectl-iexec/v2`.
 
 ## Common commands
 

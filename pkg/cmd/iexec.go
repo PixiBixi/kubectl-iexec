@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/PixiBixi/kubectl-iexec/pkg/iexec"
+	"github.com/PixiBixi/kubectl-iexec/v2/pkg/iexec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"

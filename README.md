@@ -28,7 +28,7 @@ kubectl krew install pixibixi/iexec
 With Go:
 
 ```bash
-go install github.com/PixiBixi/kubectl-iexec@latest
+go install github.com/PixiBixi/kubectl-iexec/v2@latest
 ```
 
 The binary must be named `kubectl-iexec` and be on your `PATH`. Prebuilt archives for Linux and macOS (amd64, arm64) are on the [releases page](https://github.com/PixiBixi/kubectl-iexec/releases).
