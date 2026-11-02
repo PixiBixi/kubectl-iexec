@@ -175,6 +175,13 @@ func (o *IExecOptions) Run(ctx context.Context, args []string) error {
 	if len(args) > 0 {
 		podFilter = args[0]
 	}
+	ownerKind, ownerName, isOwner, err := iexec.ParseOwner(podFilter)
+	if err != nil {
+		return err
+	}
+	if isOwner {
+		podFilter = ""
+	}
 
 	o.remoteCmd = remoteCommand(args)
 
@@ -188,6 +195,8 @@ func (o *IExecOptions) Run(ctx context.Context, args []string) error {
 		DebugImage:      o.debugImage,
 		TTY:             iexec.StdioIsTerminal(),
 		PodFilter:       podFilter,
+		OwnerKind:       ownerKind,
+		OwnerName:       ownerName,
 		ContainerFilter: o.containerFilter,
 		RemoteCmd:       o.remoteCmd,
 	}

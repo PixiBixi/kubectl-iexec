@@ -43,7 +43,7 @@ The binary must be named `kubectl-iexec` and be on your `PATH`. Prebuilt archive
 kubectl iexec [pod filter] [remote command(s)] [flags]
 ```
 
-The first argument filters pods by name. The remaining arguments are the command to run (default: `bash` when the image has it, `sh` otherwise). Put `--` before a command that takes flags, otherwise iexec reads them (`-c` is `--container`). The exit code of the remote command is returned.
+The first argument filters pods by name, or selects the pods of a workload (`deploy/api`, `sts/db`, `ds/agent`, `rs/x`, `job/x`). The remaining arguments are the command to run (default: `bash` when the image has it, `sh` otherwise). Put `--` before a command that takes flags, otherwise iexec reads them (`-c` is `--container`). The exit code of the remote command is returned.
 
 ```bash
 # pick from all pods in the namespace, then open a shell
@@ -54,6 +54,9 @@ kubectl iexec busybox
 
 # run a command
 kubectl iexec busybox cat /etc/hosts
+
+# pick among the pods of a workload (deploy/, sts/, ds/, rs/, job/)
+kubectl iexec deploy/api
 
 # pick a pod, then a container matching "second_container"
 kubectl iexec multi-container-pod -c second_container

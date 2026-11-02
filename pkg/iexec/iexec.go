@@ -2,6 +2,7 @@ package iexec
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 
@@ -29,6 +30,9 @@ type Config struct {
 	DebugImage string
 	// TTY is true when stdin and stdout are terminals.
 	TTY bool
+	// OwnerKind and OwnerName select the pods of a workload (deploy/api).
+	OwnerKind string
+	OwnerName string
 }
 
 // Iexec is our main struct, now with interfaces for UI, K8s fetching, and exec
@@ -70,8 +74,19 @@ func NewIexec(restConfig *rest.Config, config *Config, ui TerminalUI, k8s K8sCli
 
 // Do is our main plugin flow, now purely orchestrating the calls
 func (r *Iexec) Do(ctx context.Context) error {
-	// 1. Fetch pods
-	podsList, err := r.k8sClient.FetchAllPods(ctx, r.config.Namespace, r.config.LabelSelector, !r.config.AllPhases)
+	// 1. Fetch pods, narrowed to a workload's selector for deploy/api
+	labelSelector := r.config.LabelSelector
+	if r.config.OwnerKind != "" {
+		if r.config.Namespace == "" {
+			return fmt.Errorf("%s/%s needs a namespace, it cannot be used with --all-namespaces", r.config.OwnerKind, r.config.OwnerName)
+		}
+		ownerSelector, err := r.k8sClient.OwnerSelector(ctx, r.config.Namespace, r.config.OwnerKind, r.config.OwnerName)
+		if err != nil {
+			return errors.Wrap(err, "OwnerSelector failed")
+		}
+		labelSelector = mergeSelectors(ownerSelector, labelSelector)
+	}
+	podsList, err := r.k8sClient.FetchAllPods(ctx, r.config.Namespace, labelSelector, !r.config.AllPhases)
 	if err != nil {
 		return errors.Wrap(err, "fetchAllPods failed")
 	}

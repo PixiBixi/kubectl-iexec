@@ -32,6 +32,7 @@ type MockK8sClient struct {
 	AddEphemeralContainerFn  func(pod corev1.Pod, c corev1.EphemeralContainer) error
 	WaitEphemeralContainerFn func(pod corev1.Pod, name string, untilExit bool) (corev1.ContainerState, error)
 	StreamLogsFn             func(pod corev1.Pod, container string, w io.Writer) error
+	OwnerSelectorFn          func(namespace, kind, name string) (string, error)
 }
 
 func (m *MockK8sClient) FetchAllPods(_ context.Context, ns, lbl string, runningOnly bool) (*corev1.PodList, error) {
@@ -39,6 +40,9 @@ func (m *MockK8sClient) FetchAllPods(_ context.Context, ns, lbl string, runningO
 }
 func (m *MockK8sClient) MatchPods(pods *corev1.PodList, cfg Config) (*corev1.PodList, error) {
 	return m.MatchPodsFn(pods, cfg)
+}
+func (m *MockK8sClient) OwnerSelector(_ context.Context, ns, kind, name string) (string, error) {
+	return m.OwnerSelectorFn(ns, kind, name)
 }
 func (m *MockK8sClient) MatchContainers(pod corev1.Pod, cfg Config) ([]corev1.Container, error) {
 	return m.MatchContainersFn(pod, cfg)

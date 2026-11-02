@@ -17,6 +17,7 @@ type TerminalUI interface {
 type K8sClient interface {
 	FetchAllPods(ctx context.Context, namespace, labelSelector string, runningOnly bool) (*corev1.PodList, error)
 	MatchPods(pods *corev1.PodList, config Config) (*corev1.PodList, error)
+	OwnerSelector(ctx context.Context, namespace, kind, name string) (string, error)
 	MatchContainers(pod corev1.Pod, config Config) ([]corev1.Container, error)
 	AddEphemeralContainer(ctx context.Context, pod corev1.Pod, container corev1.EphemeralContainer) error
 	WaitEphemeralContainer(ctx context.Context, pod corev1.Pod, name string, untilExit bool) (corev1.ContainerState, error)

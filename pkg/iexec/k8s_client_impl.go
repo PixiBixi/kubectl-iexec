@@ -54,9 +54,9 @@ func (r *RealK8sClient) MatchPods(pods *corev1.PodList, config Config) (*corev1.
 
 	if len(result.Items) == 0 {
 		if !config.AllPhases {
-			return &result, fmt.Errorf("no running pods found for filter: %s (use --all-phases to include pods that are not running)", config.PodFilter)
+			return &result, fmt.Errorf("no running pods found%s (use --all-phases to include pods that are not running)", scope(config))
 		}
-		return &result, fmt.Errorf("no pods found for filter: %s", config.PodFilter)
+		return &result, fmt.Errorf("no pods found%s", scope(config))
 	}
 
 	return &result, nil
@@ -93,4 +93,15 @@ func (r *RealK8sClient) MatchContainers(pod corev1.Pod, config Config) ([]corev1
 	}
 
 	return matchingContainer, nil
+}
+
+// scope describes what the pod search was narrowed to, for error messages.
+func scope(config Config) string {
+	switch {
+	case config.OwnerKind != "":
+		return " for " + config.OwnerKind + "/" + config.OwnerName
+	case config.PodFilter != "":
+		return " for filter: " + config.PodFilter
+	}
+	return ""
 }
