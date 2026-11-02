@@ -14,6 +14,9 @@ This is a maintained fork of [gabeduke/kubectl-iexec](https://github.com/gabeduk
 - WebSocket exec with SPDY fallback (like modern `kubectl`), raw terminal mode and live resize
 - Clean output when stdin or stdout is piped (`kubectl iexec api printenv | sort > .env`)
 - `--first` to skip the prompts
+- Search in the pod and container pickers: press `/` and type part of `namespace/name`
+- Pods that are not `Running` or are terminating are skipped (`--all-phases` to keep them)
+- Default shell is `bash` with a fallback to `sh` for alpine and busybox images
 - Releases signed with cosign, with SBOMs and provenance, published to a Krew index
 
 ## Install
@@ -39,7 +42,7 @@ The binary must be named `kubectl-iexec` and be on your `PATH`. Prebuilt archive
 kubectl iexec [pod filter] [remote command(s)] [flags]
 ```
 
-The first argument filters pods by name. The remaining arguments are the command to run (default: `/bin/sh`).
+The first argument filters pods by name. The remaining arguments are the command to run (default: `bash` when the image has it, `sh` otherwise).
 
 ```bash
 # pick from all pods in the namespace, then open /bin/sh
@@ -63,6 +66,7 @@ kubectl iexec busybox --first cat /etc/hosts
 | `-c, --container` | Container name filter |
 | `-l, --selector` | Label selector to filter pods (`key1=value1,key2=value2`) |
 | `--first` | Skip the prompts and use the first matching pod and container |
+| `--all-phases` | Include pods that are not `Running` or are terminating (skipped by default) |
 | `-A, --all-namespaces` | Search pods across all namespaces |
 | `-n, --namespace` | Namespace to search |
 | `-v, --vim-mode` | Vim keys in the prompts |

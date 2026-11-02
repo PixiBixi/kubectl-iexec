@@ -43,6 +43,18 @@ Arg[2...] are the commands to be executed in the container
 `
 )
 
+// defaultShell runs bash when the image ships it and falls back to sh
+// (alpine, busybox) instead of failing with `exec: "bash": not found`.
+var defaultShell = []string{"/bin/sh", "-c", "command -v bash >/dev/null 2>&1 && exec bash || exec sh"}
+
+// remoteCommand returns the command given after the pod filter, or defaultShell.
+func remoteCommand(args []string) []string {
+	if len(args) > 1 {
+		return append([]string(nil), args[1:]...)
+	}
+	return defaultShell
+}
+
 // IExecOptions configures the Iexec runner
 type IExecOptions struct {
 	configFlags *genericclioptions.ConfigFlags
@@ -58,6 +70,7 @@ type IExecOptions struct {
 	naked           bool
 	vimMode         bool
 	first           bool
+	allPhases       bool
 
 	genericclioptions.IOStreams
 }
@@ -100,6 +113,7 @@ func NewCmdIExec(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&o.vimMode, "vim-mode", "v", false, "Vim Mode enabled")
 	cmd.PersistentFlags().BoolVarP(&o.naked, "naked", "x", false, "Decolorize output")
 	cmd.PersistentFlags().BoolVarP(&o.first, "first", "", false, "Skip the prompts and use the first matching pod and container")
+	cmd.PersistentFlags().BoolVarP(&o.allPhases, "all-phases", "", false, "Include pods that are not Running or are terminating")
 	o.configFlags.AddFlags(cmd.Flags())
 
 	return cmd
@@ -159,12 +173,7 @@ func (o *IExecOptions) Run(args []string) error {
 		podFilter = args[0]
 	}
 
-	if len(args) > 1 {
-		s := len(args)
-		o.remoteCmd = append(o.remoteCmd, args[1:s]...)
-	} else {
-		o.remoteCmd = []string{"/bin/sh"}
-	}
+	o.remoteCmd = remoteCommand(args)
 
 	config := &iexec.Config{
 		Namespace:       o.namespace,
@@ -172,6 +181,7 @@ func (o *IExecOptions) Run(args []string) error {
 		Naked:           o.naked,
 		VimMode:         o.vimMode,
 		First:           o.first,
+		AllPhases:       o.allPhases,
 		PodFilter:       podFilter,
 		ContainerFilter: o.containerFilter,
 		RemoteCmd:       o.remoteCmd,
