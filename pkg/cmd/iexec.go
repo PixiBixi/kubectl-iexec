@@ -75,6 +75,8 @@ type IExecOptions struct {
 	vimMode         bool
 	first           bool
 	allPhases       bool
+	debug           bool
+	debugImage      string
 
 	genericclioptions.IOStreams
 }
@@ -120,6 +122,8 @@ func NewCmdIExec(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&o.naked, "naked", "x", false, "Decolorize output")
 	cmd.PersistentFlags().BoolVarP(&o.first, "first", "", false, "Skip the prompts and use the first matching pod and container")
 	cmd.PersistentFlags().BoolVarP(&o.allPhases, "all-phases", "", false, "Include pods that are not Running or are terminating")
+	cmd.PersistentFlags().BoolVar(&o.debug, "debug", false, "Attach an ephemeral debug container to the selected container instead of an exec (distroless images)")
+	cmd.PersistentFlags().StringVar(&o.debugImage, "debug-image", iexec.DefaultDebugImage, "Image of the --debug container")
 	o.configFlags.AddFlags(cmd.Flags())
 
 	return cmd
@@ -180,6 +184,9 @@ func (o *IExecOptions) Run(ctx context.Context, args []string) error {
 		Naked:           o.naked,
 		First:           o.first,
 		AllPhases:       o.allPhases,
+		Debug:           o.debug,
+		DebugImage:      o.debugImage,
+		TTY:             iexec.StdioIsTerminal(),
 		PodFilter:       podFilter,
 		ContainerFilter: o.containerFilter,
 		RemoteCmd:       o.remoteCmd,

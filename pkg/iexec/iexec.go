@@ -2,6 +2,8 @@ package iexec
 
 import (
 	"context"
+	"io"
+	"os"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -22,6 +24,11 @@ type Config struct {
 	PodFilter       string
 	ContainerFilter string
 	RemoteCmd       []string
+	// Debug attaches an ephemeral DebugImage container instead of an exec.
+	Debug      bool
+	DebugImage string
+	// TTY is true when stdin and stdout are terminals.
+	TTY bool
 }
 
 // Iexec is our main struct, now with interfaces for UI, K8s fetching, and exec
@@ -32,6 +39,9 @@ type Iexec struct {
 	ui        TerminalUI
 	k8sClient K8sClient
 	exec      ExecRunner
+
+	stdout io.Writer
+	stderr io.Writer
 }
 
 // NewIexec constructs the Iexec with your chosen implementations
@@ -53,6 +63,8 @@ func NewIexec(restConfig *rest.Config, config *Config, ui TerminalUI, k8s K8sCli
 		ui:         ui,
 		k8sClient:  k8s,
 		exec:       exec,
+		stdout:     os.Stdout,
+		stderr:     os.Stderr,
 	}
 }
 
@@ -106,6 +118,10 @@ func (r *Iexec) Do(ctx context.Context) error {
 		"container": container.Name,
 		"namespace": r.config.Namespace,
 	}).Info("Exec to pod...")
+
+	if r.config.Debug {
+		return r.debug(ctx, pod, container)
+	}
 
 	// 6. Execute remote command
 	if err := r.exec.RunExec(ctx, r.restConfig, pod, container, r.config.RemoteCmd); err != nil {
