@@ -178,9 +178,9 @@ func (o *IExecOptions) Run(args []string) error {
 	}
 
 	// 2) Create your real implementations for the interfaces.
-	ui := iexec.NewPromptUITerminal()        // TerminalUI
-	k8s := iexec.NewRealK8sClient(clientset) // K8sClient
-	execRunner := iexec.NewSpdyExecRunner()  // ExecRunner
+	ui := iexec.NewPromptUITerminal()         // TerminalUI
+	k8s := iexec.NewRealK8sClient(clientset)  // K8sClient
+	execRunner := iexec.NewStreamExecRunner() // ExecRunner
 
 	// 3) Pass them to NewIexec along with your config.
 	r := iexec.NewIexec(o.clientCfg, config, ui, k8s, execRunner)
