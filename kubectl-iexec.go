@@ -1,6 +1,6 @@
 package main
 
-import "github.com/gabeduke/kubectl-iexec/cmd"
+import "github.com/PixiBixi/kubectl-iexec/cmd"
 
 func main() {
 	cmd.Execute()

@@ -1,4 +1,4 @@
-module github.com/gabeduke/kubectl-iexec
+module github.com/PixiBixi/kubectl-iexec
 
 go 1.27
 
