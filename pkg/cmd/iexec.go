@@ -126,6 +126,11 @@ func NewCmdIExec(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.PersistentFlags().StringVar(&o.debugImage, "debug-image", iexec.DefaultDebugImage, "Image of the --debug container")
 	o.configFlags.AddFlags(cmd.Flags())
 
+	cmd.ValidArgsFunction = o.completeTarget
+	_ = cmd.RegisterFlagCompletionFunc("namespace", o.completeNamespaces)
+	_ = cmd.RegisterFlagCompletionFunc("context", o.completeContexts)
+	_ = cmd.RegisterFlagCompletionFunc("container", o.completeContainers)
+
 	return cmd
 }
 
