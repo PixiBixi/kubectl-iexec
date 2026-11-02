@@ -20,7 +20,8 @@ IExec is an interactive pod and container selector for 'kubectl exec'
 Arg[1] will act as a filter, any pods that match will be returned in a list
 that the user can select from.
 
-Arg[2...] are the commands to be executed in the container
+Arg[2...] are the commands to be executed in the container. Put -- before
+a command that has its own flags, otherwise iexec parses them.
 `
 	iexecExample = `
 	# select from all pods in the namespace then run: 'kubectl exec sh'
@@ -39,6 +40,9 @@ Arg[2...] are the commands to be executed in the container
 
 	# skip the prompts and run in the first matching pod and container
 	%[1]s iexec busybox --first cat /etc/hosts
+
+	# put -- before a command that has its own flags
+	%[1]s iexec busybox -- sh -c 'echo $HOSTNAME'
 `
 )
 
