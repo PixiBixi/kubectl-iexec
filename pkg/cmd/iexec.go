@@ -65,18 +65,19 @@ type IExecOptions struct {
 	configFlags *genericclioptions.ConfigFlags
 	clientCfg   *rest.Config
 
-	allNamespaces   bool
-	remoteCmd       []string
-	containerFilter string
-	lvl             string
-	namespace       string
-	labelSelector   string
-	naked           bool
-	vimMode         bool
-	first           bool
-	allPhases       bool
-	debug           bool
-	debugImage      string
+	allNamespaces     bool
+	remoteCmd         []string
+	containerFilter   string
+	lvl               string
+	namespace         string
+	labelSelector     string
+	naked             bool
+	vimMode           bool
+	first             bool
+	allPhases         bool
+	debug             bool
+	debugImage        string
+	installCompletion bool
 
 	genericclioptions.IOStreams
 }
@@ -102,6 +103,9 @@ func NewCmdIExec(streams genericclioptions.IOStreams) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(c *cobra.Command, args []string) error {
+			if o.installCompletion {
+				return installCompletion(o.Out)
+			}
 			if err := o.Complete(c, args); err != nil {
 				return err
 			}
@@ -124,6 +128,7 @@ func NewCmdIExec(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&o.allPhases, "all-phases", "", false, "Include pods that are not Running or are terminating")
 	cmd.PersistentFlags().BoolVar(&o.debug, "debug", false, "Attach an ephemeral debug container to the selected container instead of an exec (distroless images)")
 	cmd.PersistentFlags().StringVar(&o.debugImage, "debug-image", iexec.DefaultDebugImage, "Image of the --debug container")
+	cmd.Flags().BoolVar(&o.installCompletion, "install-completion", false, "Link kubectl_complete-iexec next to kubectl-iexec so kubectl completes `kubectl iexec`, then exit")
 	o.configFlags.AddFlags(cmd.Flags())
 
 	cmd.ValidArgsFunction = o.completeTarget
