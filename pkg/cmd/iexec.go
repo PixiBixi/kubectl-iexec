@@ -111,6 +111,7 @@ func NewCmdIExec(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&o.lvl, "log-level", "", "", "log level (trace|debug|info|warn|error|fatal|panic)")
 	cmd.PersistentFlags().StringVarP(&o.labelSelector, "selector", "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
 	cmd.PersistentFlags().BoolVarP(&o.vimMode, "vim-mode", "v", false, "Vim Mode enabled")
+	_ = cmd.PersistentFlags().MarkDeprecated("vim-mode", "j/k navigation is always on")
 	cmd.PersistentFlags().BoolVarP(&o.naked, "naked", "x", false, "Decolorize output")
 	cmd.PersistentFlags().BoolVarP(&o.first, "first", "", false, "Skip the prompts and use the first matching pod and container")
 	cmd.PersistentFlags().BoolVarP(&o.allPhases, "all-phases", "", false, "Include pods that are not Running or are terminating")
@@ -179,7 +180,6 @@ func (o *IExecOptions) Run(args []string) error {
 		Namespace:       o.namespace,
 		LabelSelector:   o.labelSelector,
 		Naked:           o.naked,
-		VimMode:         o.vimMode,
 		First:           o.first,
 		AllPhases:       o.allPhases,
 		PodFilter:       podFilter,
@@ -194,7 +194,7 @@ func (o *IExecOptions) Run(args []string) error {
 	}
 
 	// 2) Create your real implementations for the interfaces.
-	ui := iexec.NewPromptUITerminal()         // TerminalUI
+	ui := iexec.NewHuhTerminal()              // TerminalUI
 	k8s := iexec.NewRealK8sClient(clientset)  // K8sClient
 	execRunner := iexec.NewStreamExecRunner() // ExecRunner
 

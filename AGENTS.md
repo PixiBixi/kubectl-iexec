@@ -5,9 +5,9 @@ Guidance for coding agents working in this repository.
 ## What this is
 
 `kubectl-iexec` is a kubectl plugin (`kubectl iexec`): it filters pods, lets
-the user pick a pod and a container (promptui), then execs into it. Fork of
+the user pick a pod and a container (huh), then execs into it. Fork of
 gabeduke/kubectl-iexec. Go 1.27, cobra, client-go (typed client and
-`remotecommand`), promptui, `golang.org/x/term`. The module path is
+`remotecommand`), huh, `golang.org/x/term`. The module path is
 `github.com/PixiBixi/kubectl-iexec/v2`.
 
 ## Common commands
@@ -36,7 +36,7 @@ declared in `.github/actionlint.yaml`).
   real implementations.
 - `pkg/iexec/iexec.go`: `Iexec.Do` orchestrates fetch, match, select, exec.
   The three collaborators are interfaces in `iface.go`, so tests inject mocks
-  (`iexec_test.go`): `TerminalUI` (`terminal_ui_prompt.go`, promptui on
+  (`iexec_test.go`): `TerminalUI` (`terminal_ui_huh.go`, huh on
   `/dev/tty` so piped stdout stays clean), `K8sClient`
   (`k8s_client_impl.go`) and `ExecRunner` (`exec_runner.go`).
 - `exec_runner.go`: WebSocket executor with SPDY fallback, remote TTY and

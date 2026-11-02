@@ -15,7 +15,6 @@ type Config struct {
 	Namespace       string
 	LabelSelector   string
 	Naked           bool
-	VimMode         bool
 	First           bool
 	AllPhases       bool
 	PodFilter       string
@@ -39,7 +38,6 @@ func NewIexec(restConfig *rest.Config, config *Config, ui TerminalUI, k8s K8sCli
 		"containerFilter": config.ContainerFilter,
 		"remote command":  config.RemoteCmd,
 		"podFilter":       config.PodFilter,
-		"Vim Mode":        config.VimMode,
 		"Naked":           config.Naked,
 		"First":           config.First,
 		"AllPhases":       config.AllPhases,

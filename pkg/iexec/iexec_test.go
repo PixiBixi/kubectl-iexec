@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// Mock UI (no promptui usage)
+// Mock UI (no terminal usage)
 type MockUI struct {
 	SelectPodFn       func([]corev1.Pod, Config) (corev1.Pod, error)
 	SelectContainerFn func([]corev1.Container, Config) (corev1.Container, error)
