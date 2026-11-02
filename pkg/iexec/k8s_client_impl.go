@@ -77,7 +77,7 @@ func (r *RealK8sClient) MatchContainers(pod corev1.Pod, config Config) ([]corev1
 		return nil, err
 	}
 
-	sort.Slice(matchingContainer[:], func(i, j int) bool {
+	sort.Slice(matchingContainer, func(i, j int) bool {
 		return matchingContainer[i].Name < matchingContainer[j].Name
 	})
 

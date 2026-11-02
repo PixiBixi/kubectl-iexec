@@ -29,7 +29,7 @@ func (p *PromptUITerminal) SelectPod(pods []corev1.Pod, config Config) (corev1.P
 	if err != nil {
 		return corev1.Pod{}, errors.Wrap(err, "failed to open /dev/tty for pod selection")
 	}
-	defer tty.Close()
+	defer tty.Close() //nolint:errcheck
 
 	var templates *promptui.SelectTemplates
 	if config.Naked {
@@ -62,7 +62,7 @@ func (p *PromptUITerminal) SelectContainer(containers []corev1.Container, config
 	if err != nil {
 		return corev1.Container{}, errors.Wrap(err, "failed to open /dev/tty for container selection")
 	}
-	defer tty.Close()
+	defer tty.Close() //nolint:errcheck
 
 	var templates *promptui.SelectTemplates
 	if config.Naked {
