@@ -20,7 +20,7 @@ make lint-md FILES="README.md AGENTS.md"  # markdownlint, as the CI job runs it
 make snapshot   # goreleaser release --snapshot --clean (dry-run)
 
 go test -race ./pkg/iexec -run TestIexec_Do_First   # single test
-pre-commit run --all-files
+prek run --all-files
 ```
 
 CI lives in `.github/workflows/`: `ci.yml` (verify, build, test -race),
