@@ -81,7 +81,7 @@ kubectl iexec busybox -- sh -c 'echo $HOSTNAME'
 
 | Flag | Description |
 | --- | --- |
-| `-c, --container` | Container name filter |
+| `-c, --container` | Container name filter: an exact name wins, otherwise substring. Native sidecars are included |
 | `-l, --selector` | Label selector to filter pods (`key1=value1,key2=value2`) |
 | `--first` | Skip the prompts and use the first matching pod and container |
 | `--debug` | Attach an ephemeral debug container targeting the selected container instead of an exec. Needs `patch` on `pods/ephemeralcontainers` |

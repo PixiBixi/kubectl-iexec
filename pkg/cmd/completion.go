@@ -10,6 +10,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/PixiBixi/kubectl-iexec/v2/pkg/iexec"
 )
 
 // completionTimeout bounds the API calls made on <TAB>.
@@ -217,7 +219,7 @@ func containerNames(pods []corev1.Pod, podFilter, toComplete string) []string {
 		if !strings.Contains(p.Name, podFilter) {
 			continue
 		}
-		for _, c := range p.Spec.Containers {
+		for _, c := range iexec.ExecContainers(p) {
 			if !seen[c.Name] && strings.HasPrefix(c.Name, toComplete) {
 				seen[c.Name] = true
 				names = append(names, c.Name)
