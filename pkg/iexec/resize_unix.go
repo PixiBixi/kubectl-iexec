@@ -21,10 +21,7 @@ func watchTerminalSize(ctx context.Context, fd int) remotecommand.TerminalSizeQu
 		if err != nil {
 			return
 		}
-		select {
-		case sizes <- remotecommand.TerminalSize{Width: uint16(w), Height: uint16(h)}: //nolint:gosec // terminal sizes fit in uint16
-		default: // a resize is already pending, drop this one
-		}
+		pushLatest(sizes, remotecommand.TerminalSize{Width: uint16(w), Height: uint16(h)}) //nolint:gosec // terminal sizes fit in uint16
 	}
 
 	winch := make(chan os.Signal, 1)
@@ -43,4 +40,14 @@ func watchTerminalSize(ctx context.Context, fd int) remotecommand.TerminalSizeQu
 		}
 	}()
 	return sizes
+}
+
+// pushLatest queues s, replacing a pending size: the newest one is the one that
+// must reach the remote terminal. Single producer, so the send cannot block.
+func pushLatest(sizes sizeQueue, s remotecommand.TerminalSize) {
+	select {
+	case <-sizes:
+	default:
+	}
+	sizes <- s
 }
