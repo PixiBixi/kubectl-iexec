@@ -3,6 +3,7 @@ package iexec
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -67,32 +68,43 @@ func isExecable(pod corev1.Pod) bool {
 	return pod.Status.Phase == corev1.PodRunning && pod.DeletionTimestamp == nil
 }
 
+// ExecContainers lists what can be exec'd into: the app containers, then the
+// native sidecars (init containers with restartPolicy Always).
+func ExecContainers(pod corev1.Pod) []corev1.Container {
+	out := slices.Clone(pod.Spec.Containers)
+	for _, c := range pod.Spec.InitContainers {
+		if c.RestartPolicy != nil && *c.RestartPolicy == corev1.ContainerRestartPolicyAlways {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 func (r *RealK8sClient) MatchContainers(pod corev1.Pod, config Config) ([]corev1.Container, error) {
+	all := ExecContainers(pod)
 	if config.ContainerFilter == "" {
-		return pod.Spec.Containers, nil
+		return all, nil
 	}
 	log.WithFields(log.Fields{
 		"SearchFilter": config.ContainerFilter,
 	}).Infof("Get all containers for containerFilter...")
-	var matchingContainer []corev1.Container
-
-	for i, container := range pod.Spec.Containers {
-		if strings.Contains(container.Name, config.ContainerFilter) {
-			matchingContainer = append(matchingContainer, container)
-			log.WithFields(log.Fields{
-				"ContainerName": container.Name,
-				"index":         i,
-			}).Infof("Found container...")
+	// An exact name wins over substring matches, so --first on "app" never picks "app-proxy".
+	var exact, partial []corev1.Container
+	for _, container := range all {
+		switch {
+		case container.Name == config.ContainerFilter:
+			exact = append(exact, container)
+		case strings.Contains(container.Name, config.ContainerFilter):
+			partial = append(partial, container)
 		}
 	}
-
-	if len(matchingContainer) == 0 {
-		err := fmt.Errorf("no containers found for filter: %s", config.ContainerFilter)
-
-		return nil, err
+	if len(exact) > 0 {
+		return exact, nil
 	}
-
-	return matchingContainer, nil
+	if len(partial) == 0 {
+		return nil, fmt.Errorf("no containers found for filter: %s", config.ContainerFilter)
+	}
+	return partial, nil
 }
 
 // scope describes what the pod search was narrowed to, for error messages.

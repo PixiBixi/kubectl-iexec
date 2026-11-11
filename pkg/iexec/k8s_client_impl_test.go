@@ -95,3 +95,51 @@ func TestFetchAllPods_FieldSelector(t *testing.T) {
 		}
 	}
 }
+
+func sidecarPod() corev1.Pod {
+	always := corev1.ContainerRestartPolicyAlways
+	return corev1.Pod{Spec: corev1.PodSpec{
+		InitContainers: []corev1.Container{
+			{Name: "migrate"},
+			{Name: "proxy", RestartPolicy: &always},
+		},
+		Containers: []corev1.Container{{Name: "app-proxy"}, {Name: "app"}},
+	}}
+}
+
+func containerNamesOf(cs []corev1.Container) []string {
+	out := make([]string, 0, len(cs))
+	for _, c := range cs {
+		out = append(out, c.Name)
+	}
+	return out
+}
+
+func TestMatchContainers_NativeSidecars(t *testing.T) {
+	r := &RealK8sClient{}
+	all, err := r.MatchContainers(sidecarPod(), Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(containerNamesOf(all), ","); got != "app-proxy,app,proxy" {
+		t.Fatalf("want app containers then the native sidecar (not plain init), got %s", got)
+	}
+	got, err := r.MatchContainers(sidecarPod(), Config{ContainerFilter: "prox"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := strings.Join(containerNamesOf(got), ","); n != "app-proxy,proxy" {
+		t.Fatalf("-c must match sidecars, got %s", n)
+	}
+}
+
+func TestMatchContainers_ExactBeforeSubstring(t *testing.T) {
+	r := &RealK8sClient{}
+	got, err := r.MatchContainers(sidecarPod(), Config{ContainerFilter: "app"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := strings.Join(containerNamesOf(got), ","); n != "app" {
+		t.Fatalf("exact name must win over substring, got %s", n)
+	}
+}

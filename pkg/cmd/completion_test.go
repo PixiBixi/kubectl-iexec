@@ -54,6 +54,12 @@ func TestContainerNames(t *testing.T) {
 	if got := containerNames(pods, "web", ""); !reflect.DeepEqual(got, []string{"app", "istio-proxy"}) {
 		t.Errorf("web pods: %v", got)
 	}
+	always := corev1.ContainerRestartPolicyAlways
+	side := corev1.Pod{Name: "web-3"}
+	side.Spec.InitContainers = []corev1.Container{{Name: "cloudsql", RestartPolicy: &always}, {Name: "migrate"}}
+	if got := containerNames([]corev1.Pod{side}, "web", ""); !reflect.DeepEqual(got, []string{"cloudsql"}) {
+		t.Errorf("native sidecar only: %v", got)
+	}
 	if got := containerNames(pods, "", "p"); !reflect.DeepEqual(got, []string{"postgres"}) {
 		t.Errorf("prefix p: %v", got)
 	}
